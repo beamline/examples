@@ -18,7 +18,7 @@ public class EnumerateWindows {
 		miner.setOnAfterEvent(() -> {
 			if (miner.getProcessedEvents() % 5 == 0) {
 				try {
-					File f = new File("output.svg");
+					File f = new File("src/main/resources/output/output.svg");
 					miner.getLatestResponse().generateDot().exportToSvg(f);
 				} catch (IOException e) { }
 			}
