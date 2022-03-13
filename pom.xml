@@ -23,6 +23,8 @@
 			<artifactId>framework</artifactId>
 			<version>master-SNAPSHOT</version>
 		</dependency>
+
+		<!-- For Windows window monitor -->
 		<dependency>
 			<groupId>com.github.beamline</groupId>
 			<artifactId>discovery-trivial</artifactId>
@@ -37,6 +39,18 @@
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna-platform</artifactId>
 			<version>5.10.0</version>
+		</dependency>
+
+		<!-- For speech recognition -->
+		<dependency>
+			<groupId>com.alphacephei</groupId>
+			<artifactId>vosk</artifactId>
+			<version>0.3.33</version>
+		</dependency>
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20211205</version>
 		</dependency>
 	</dependencies>
 </project>
