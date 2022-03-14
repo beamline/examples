@@ -97,6 +97,7 @@ public class SpeechRecognizerSource implements XesSource {
 								XTimeExtension.instance().assignTimestamp(event, new Date());
 								XTrace eventWrapper = xesFactory.createTrace();
 								XConceptExtension.instance().assignName(eventWrapper, "case-" + caseId);
+								System.out.println(word);
 								eventWrapper.add(event);
 								ps.onNext(eventWrapper);
 							}

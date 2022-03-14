@@ -16,7 +16,7 @@ public class SpeechRecognitionMain {
 
 		// in the following statement we set a hook to save the map every 1000 events processed
 		miner.setOnAfterEvent(() -> {
-			if (miner.getProcessedEvents() % 5 == 0) {
+			if (miner.getProcessedEvents() % 2 == 0) {
 				try {
 					File f = new File("src/main/resources/output/output.svg");
 					miner.getLatestResponse().generateDot().exportToSvg(f);
