@@ -1,8 +1,9 @@
 package beamline.examples.wikipedia;
 
 import java.util.Arrays;
-import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -12,37 +13,20 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.sse.InboundSseEvent;
 import javax.ws.rs.sse.SseEventSource;
 
-import org.apache.commons.codec.digest.DigestUtils;
-import org.deckfour.xes.extension.std.XConceptExtension;
-import org.deckfour.xes.extension.std.XTimeExtension;
-import org.deckfour.xes.factory.XFactory;
-import org.deckfour.xes.factory.XFactoryNaiveImpl;
-import org.deckfour.xes.model.XEvent;
-import org.deckfour.xes.model.XTrace;
 import org.json.JSONObject;
 
-import beamline.sources.XesSource;
-import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.subjects.PublishSubject;
-import io.reactivex.rxjava3.subjects.Subject;
+import beamline.events.BEvent;
+import beamline.exceptions.EventException;
+import beamline.sources.BeamlineAbstractSource;
 
-public class WikipediaEditSource implements XesSource {
+public class WikipediaEditSource extends BeamlineAbstractSource {
 
-	private static final XFactory xesFactory = new XFactoryNaiveImpl();
+	private static final long serialVersionUID = 608025607423103621L;
 	private static List<String> processesToStream = Arrays.asList("enwiki");
-	private Subject<XTrace> ps;
-	
-	public WikipediaEditSource() {
-		this.ps = PublishSubject.create();
-	}
-	
-	@Override
-	public Observable<XTrace> getObservable() {
-		return ps;
-	}
 
-	@Override
-	public void prepare() throws Exception {
+	public void run(SourceContext<BEvent> ctx) throws Exception {
+		Queue<BEvent> buffer = new LinkedList<>();
+		
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -57,19 +41,16 @@ public class WikipediaEditSource implements XesSource {
 							JSONObject obj = new JSONObject(data);
 							
 							String processName = obj.getString("wiki");
-							String caseId = DigestUtils.md5Hex(obj.getString("title"));
+							String caseId = obj.getString("title");
 							String activityName = obj.getString("type");
 							
 							if (processesToStream.contains(processName)) {
 								// prepare the actual event
-								XEvent event = xesFactory.createEvent();
-								XConceptExtension.instance().assignName(event, activityName);
-								XTimeExtension.instance().assignTimestamp(event, new Date());
-								XTrace eventWrapper = xesFactory.createTrace();
-								XConceptExtension.instance().assignName(eventWrapper, caseId);
-								eventWrapper.add(event);
-								ps.onNext(eventWrapper);
-								System.out.println(caseId + " --> " + activityName);
+								try {
+									buffer.add(BEvent.create(processName, activityName, caseId));
+								} catch (EventException e) {
+									e.printStackTrace();
+								}
 							}
 						}
 					}
@@ -77,6 +58,17 @@ public class WikipediaEditSource implements XesSource {
 				source.open();
 			}
 		}).start();
+		
+		while(isRunning()) {
+			while (isRunning() && buffer.isEmpty()) {
+				Thread.sleep(100l);
+			}
+			if (isRunning()) {
+				synchronized (ctx.getCheckpointLock()) {
+					BEvent e = buffer.poll();
+					ctx.collect(e);
+				}
+			}
+		}
 	}
-
 }

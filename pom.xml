@@ -21,15 +21,15 @@
 		<dependency>
 			<groupId>com.github.beamline</groupId>
 			<artifactId>framework</artifactId>
-			<version>master-SNAPSHOT</version>
+			<version>0.2.0</version>
 		</dependency>
-
-		<!-- For Windows window monitor -->
 		<dependency>
 			<groupId>com.github.beamline</groupId>
 			<artifactId>discovery-trivial</artifactId>
-			<version>master-SNAPSHOT</version>
+			<version>-SNAPSHOT</version>
 		</dependency>
+
+		<!-- For Windows window monitor -->
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna</artifactId>
@@ -63,11 +63,6 @@
 			<groupId>org.apache.cxf</groupId>
 			<artifactId>cxf-rt-rs-sse</artifactId>
 			<version>3.4.1</version>
-		</dependency>
-		<dependency>
-			<groupId>commons-codec</groupId>
-			<artifactId>commons-codec</artifactId>
-			<version>1.11</version>
 		</dependency>
 	</dependencies>
 </project>
