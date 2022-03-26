@@ -35,13 +35,6 @@ public class WindowsWindowMonitorSource extends BeamlineAbstractSource {
 					String currentProcess = getWindowName();
 					if (!currentProcess.isEmpty() && !currentProcess.equals(latestProcess)) {
 						latestProcess = currentProcess;
-//						XEvent event = xesFactory.createEvent();
-//						XConceptExtension.instance().assignName(event, currentProcess);
-//						XTimeExtension.instance().assignTimestamp(event, new Date());
-//						XTrace eventWrapper = xesFactory.createTrace();
-//						XConceptExtension.instance().assignName(eventWrapper, caseId);
-//						eventWrapper.add(event);
-//						ps.onNext(eventWrapper);
 						try {
 							buffer.add(BEvent.create("window", caseId, currentProcess));
 						} catch (EventException e) { }
