@@ -21,12 +21,12 @@
 		<dependency>
 			<groupId>com.github.beamline</groupId>
 			<artifactId>framework</artifactId>
-			<version>0.2.0</version>
+			<version>0.2.1</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.beamline</groupId>
 			<artifactId>discovery-trivial</artifactId>
-			<version>-SNAPSHOT</version>
+			<version>0.0.4</version>
 		</dependency>
 
 		<!-- For Windows window monitor -->

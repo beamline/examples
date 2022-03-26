@@ -1,14 +1,8 @@
 package beamline.examples.windowsWindowMonitor;
 
-import java.util.Date;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.UUID;
-
-import org.deckfour.xes.extension.std.XConceptExtension;
-import org.deckfour.xes.extension.std.XTimeExtension;
-import org.deckfour.xes.factory.XFactory;
-import org.deckfour.xes.factory.XFactoryNaiveImpl;
-import org.deckfour.xes.model.XEvent;
-import org.deckfour.xes.model.XTrace;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.Kernel32;
@@ -19,56 +13,58 @@ import com.sun.jna.platform.win32.WinNT.HANDLE;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.win32.StdCallLibrary;
 
-import beamline.sources.XesSource;
-import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.subjects.PublishSubject;
-import io.reactivex.rxjava3.subjects.Subject;
+import beamline.events.BEvent;
+import beamline.exceptions.EventException;
+import beamline.sources.BeamlineAbstractSource;
 
-public class CurrentlyRunningProcess implements XesSource {
+public class WindowsWindowMonitorSource extends BeamlineAbstractSource {
 
+	private static final long serialVersionUID = -7826513897494030243L;
 	private static final int POLLING_DELAY = 100;
-	private static final XFactory xesFactory = new XFactoryNaiveImpl();
-	
-	private String caseId;
-	private String latestProcess = null;
-	private Subject<XTrace> ps;
-	
-	public CurrentlyRunningProcess() {
-		this.caseId = UUID.randomUUID().toString();
-		this.ps = PublishSubject.create();
-	}
 	
 	@Override
-	public Observable<XTrace> getObservable() {
-		return ps;
-	}
-
-	@Override
-	public void prepare() throws Exception {
+	public void run(SourceContext<BEvent> ctx) throws Exception {
+		Queue<BEvent> buffer = new LinkedList<>();
+		
+		String caseId = UUID.randomUUID().toString();
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				while(true) {
+				String latestProcess = "";
+				while(isRunning()) {
 					String currentProcess = getWindowName();
 					if (!currentProcess.isEmpty() && !currentProcess.equals(latestProcess)) {
 						latestProcess = currentProcess;
-						XEvent event = xesFactory.createEvent();
-						XConceptExtension.instance().assignName(event, currentProcess);
-						XTimeExtension.instance().assignTimestamp(event, new Date());
-						XTrace eventWrapper = xesFactory.createTrace();
-						XConceptExtension.instance().assignName(eventWrapper, caseId);
-						eventWrapper.add(event);
-						ps.onNext(eventWrapper);
+//						XEvent event = xesFactory.createEvent();
+//						XConceptExtension.instance().assignName(event, currentProcess);
+//						XTimeExtension.instance().assignTimestamp(event, new Date());
+//						XTrace eventWrapper = xesFactory.createTrace();
+//						XConceptExtension.instance().assignName(eventWrapper, caseId);
+//						eventWrapper.add(event);
+//						ps.onNext(eventWrapper);
+						try {
+							buffer.add(BEvent.create("window", caseId, currentProcess));
+						} catch (EventException e) { }
 					}
 					
 					try {
 						Thread.sleep(POLLING_DELAY);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
+					} catch (InterruptedException e) { }
 				}
 			}
 		}).start();
+		
+		while(isRunning()) {
+			while (isRunning() && buffer.isEmpty()) {
+				Thread.sleep(100l);
+			}
+			if (isRunning()) {
+				synchronized (ctx.getCheckpointLock()) {
+					BEvent e = buffer.poll();
+					ctx.collect(e);
+				}
+			}
+		}
 	}
 
 	private static String getWindowName() {

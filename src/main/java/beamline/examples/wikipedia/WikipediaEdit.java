@@ -9,7 +9,7 @@ import beamline.events.BEvent;
 import beamline.miners.trivial.DirectlyFollowsDependencyDiscoveryMiner;
 import beamline.miners.trivial.ProcessMap;
 
-public class WikipediaEditMain {
+public class WikipediaEdit {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("starting...");
