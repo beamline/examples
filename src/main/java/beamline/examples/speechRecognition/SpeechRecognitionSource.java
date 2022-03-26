@@ -1,57 +1,51 @@
 package beamline.examples.speechRecognition;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Date;
+import java.util.LinkedList;
+import java.util.Queue;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.TargetDataLine;
 
-import org.deckfour.xes.extension.std.XConceptExtension;
-import org.deckfour.xes.extension.std.XTimeExtension;
-import org.deckfour.xes.factory.XFactory;
-import org.deckfour.xes.factory.XFactoryNaiveImpl;
-import org.deckfour.xes.model.XEvent;
-import org.deckfour.xes.model.XTrace;
+import org.apache.flink.configuration.Configuration;
 import org.json.JSONObject;
 import org.vosk.Model;
 import org.vosk.Recognizer;
 
-import beamline.sources.XesSource;
-import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.subjects.PublishSubject;
-import io.reactivex.rxjava3.subjects.Subject;
+import beamline.events.BEvent;
+import beamline.sources.BeamlineAbstractSource;
 
-public class SpeechRecognizerSource implements XesSource {
+public class SpeechRecognitionSource extends BeamlineAbstractSource {
 
-	private static final XFactory xesFactory = new XFactoryNaiveImpl();
+	private static final long serialVersionUID = -2638193617911467198L;
 	private static final long MILLISECS_FOR_NEW_CASE = 2500;
+	TargetDataLine microphone;
+	Recognizer recognizer;
 	
-	private int caseId = 0;
-	private Subject<XTrace> ps;
-
-	public SpeechRecognizerSource() {
-		this.ps = PublishSubject.create();
-	}
-
 	@Override
-	public void prepare() throws Exception {
+	public void open(Configuration parameters) throws Exception {
+		AudioFormat format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 60000, 16, 2, 4, 44100, false);
+		DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+		
+		Model model = new Model("src/main/resources/vosk-model-small-en-us-0.15/");
+		recognizer = new Recognizer(model, 120000);
+		
+		microphone = (TargetDataLine) AudioSystem.getLine(info);
+		microphone.open(format);
+		microphone.start();
+	}
+	
+	@Override
+	public void run(SourceContext<BEvent> ctx) throws Exception {
+		Queue<BEvent> buffer = new LinkedList<>();
+		
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				AudioFormat format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 60000, 16, 2, 4, 44100, false);
-				DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
-				TargetDataLine microphone;
-
+				int caseId = 0;
 				try {
-					Model model = new Model("src/main/resources/vosk-model-small-en-us-0.15/");
-					Recognizer recognizer = new Recognizer(model, 120000);
-
-					microphone = (TargetDataLine) AudioSystem.getLine(info);
-					microphone.open(format);
-					microphone.start();
-
 					ByteArrayOutputStream out = new ByteArrayOutputStream();
 					int numBytesRead;
 					int CHUNK_SIZE = 1024;
@@ -59,7 +53,6 @@ public class SpeechRecognizerSource implements XesSource {
 					byte[] b = new byte[4096];
 
 					System.out.println("Start talking now...");
-					
 					int lastWordIndex = 0;
 					long lastWordMillisecs = Long.MIN_VALUE;
 					
@@ -92,14 +85,8 @@ public class SpeechRecognizerSource implements XesSource {
 								lastWordMillisecs = System.currentTimeMillis();
 								
 								// prepare the actual event
-								XEvent event = xesFactory.createEvent();
-								XConceptExtension.instance().assignName(event, word);
-								XTimeExtension.instance().assignTimestamp(event, new Date());
-								XTrace eventWrapper = xesFactory.createTrace();
-								XConceptExtension.instance().assignName(eventWrapper, "case-" + caseId);
 								System.out.println(word);
-								eventWrapper.add(event);
-								ps.onNext(eventWrapper);
+								buffer.offer(BEvent.create("speech", "case-" + caseId, word));
 							}
 						}
 					}
@@ -111,10 +98,17 @@ public class SpeechRecognizerSource implements XesSource {
 				}
 			}
 		}).start();
-	}
-
-	@Override
-	public Observable<XTrace> getObservable() {
-		return ps;
+		
+		while(isRunning()) {
+			while (isRunning() && buffer.isEmpty()) {
+				Thread.sleep(100l);
+			}
+			if (isRunning()) {
+				synchronized (ctx.getCheckpointLock()) {
+					BEvent e = buffer.poll();
+					ctx.collect(e);
+				}
+			}
+		}
 	}
 }
