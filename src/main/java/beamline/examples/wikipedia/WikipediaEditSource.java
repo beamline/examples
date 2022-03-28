@@ -27,36 +27,30 @@ public class WikipediaEditSource extends BeamlineAbstractSource {
 	public void run(SourceContext<BEvent> ctx) throws Exception {
 		Queue<BEvent> buffer = new LinkedList<>();
 		
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				Client client = ClientBuilder.newClient();
-				WebTarget target = client.target("https://stream.wikimedia.org/v2/stream/recentchange");
-				SseEventSource source = SseEventSource.target(target).reconnectingEvery(5, TimeUnit.SECONDS).build();
-				source.register(new Consumer<InboundSseEvent>() {
-					@Override
-					public void accept(InboundSseEvent t) {
-						String data = t.readData();
-						if (data != null) {
-							JSONObject obj = new JSONObject(data);
-							
-							String processName = obj.getString("wiki");
-							String caseId = obj.getString("title");
-							String activityName = obj.getString("type");
-							
-							if (processesToStream.contains(processName)) {
-								// prepare the actual event
-								try {
-									buffer.add(BEvent.create(processName, activityName, caseId));
-								} catch (EventException e) {
-									e.printStackTrace();
-								}
+		new Thread(() -> {
+			Client client = ClientBuilder.newClient();
+			WebTarget target = client.target("https://stream.wikimedia.org/v2/stream/recentchange");
+			SseEventSource source = SseEventSource.target(target).reconnectingEvery(5, TimeUnit.SECONDS).build();
+			source.register((InboundSseEvent t) -> {
+					String data = t.readData();
+					if (data != null) {
+						JSONObject obj = new JSONObject(data);
+						
+						String processName = obj.getString("wiki");
+						String caseId = obj.getString("title");
+						String activityName = obj.getString("type");
+						
+						if (processesToStream.contains(processName)) {
+							// prepare the actual event
+							try {
+								buffer.add(BEvent.create(processName, caseId, activityName));
+							} catch (EventException e) {
+								e.printStackTrace();
 							}
 						}
 					}
 				});
-				source.open();
-			}
+			source.open();
 		}).start();
 		
 		while(isRunning()) {
