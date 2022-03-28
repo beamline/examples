@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
