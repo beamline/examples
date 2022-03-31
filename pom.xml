@@ -28,6 +28,16 @@
 			<artifactId>discovery-trivial</artifactId>
 			<version>0.0.4</version>
 		</dependency>
+		<dependency>
+			<groupId>com.github.beamline</groupId>
+			<artifactId>conformance-behavioural-patterns</artifactId>
+			<version>0.0.2</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.beamline</groupId>
+			<artifactId>simulation-plg</artifactId>
+			<version>0.0.2</version>
+		</dependency>
 
 		<!-- For Windows window monitor -->
 		<dependency>
@@ -64,5 +74,13 @@
 			<artifactId>cxf-rt-rs-sse</artifactId>
 			<version>3.4.1</version>
 		</dependency>
+		
+		<!-- For MySQL -->
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>8.0.28</version>
+		</dependency>
+		
 	</dependencies>
 </project>

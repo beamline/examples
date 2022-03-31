@@ -1,0 +1,7 @@
+place "0" init 1;
+place "5";
+place "4";
+place "1";
+trans "2"~"new" in "0" out "5" ;
+trans "3"~"edit" in "5" out "4" ;
+trans "6"~"" in "4" out "5" ;
